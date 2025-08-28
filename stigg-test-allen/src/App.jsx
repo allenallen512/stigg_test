@@ -93,6 +93,19 @@ function Home() {
   // updated: export handler (ensure project exists)
   async function exportAsPdf(projectId) {
     const project = projects.find(p => p.id === projectId)
+    if (!project) return
+
+    // if user does not have export access, send them to pricing
+    if (!usage?.exportPDF) {
+      navigate('/pricing')
+      return
+    }
+
+    try {
+      await apiAddEvent(CUSTOMER_ID, { projectId, action: 'export_pdf', projectName: project.name })
+    } catch (e) {
+      console.error('export event failed', e)
+    }
     alert(`Exporting "${project.name}" as PDF`)
   }
 
@@ -140,12 +153,10 @@ function Home() {
             <h3>{project.name}</h3>
             <div>
               <button onClick={() => addTask(project.id)}>Add Task</button>
-              {/* show Export as PDF only when user has exportPDF access */}
-              {usage?.exportPDF && (
-                <button style={{ marginLeft: 8 }} onClick={() => exportAsPdf(project.id)}>
-                  Export as PDF
-                </button>
-              )}
+              {/* always show Export as PDF; handler will redirect to pricing if no access */}
+              <button style={{ marginLeft: 8 }} onClick={() => exportAsPdf(project.id)}>
+                Export as PDF
+              </button>
               {/* new: Remove Project button */}
               <button style={{ marginLeft: 8 }} onClick={() => removeProject(project.id)}>
                 Remove Project
