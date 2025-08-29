@@ -2,6 +2,8 @@
 
 ## Running the project
 
+Go into "stigg-test-allen" folder
+
 Prerequisites:
 - Node.js (>= 18 recommended)
 - npm 
