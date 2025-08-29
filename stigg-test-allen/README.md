@@ -7,25 +7,32 @@ Go into "stigg-test-allen" folder
 Prerequisites:
 - Node.js (I use 24.1.0 but any current one should work)
 - npm ( I use version 11.3)
+- Vite needed also
 
-Ports used by default:
-- Server: 4000
-- Vite dev server (client): 5173
 
 ## What I made 
 I made a project manager which allows users to create projects, create tasks for a project, download a project and its tasks as a
 PDF, as well as create AI summaries of projects. Here are the tier options below. 
 
+For now - each "AI use" will just add increment the usage by 10 since I am not tracking tokens, GPU minutes, any computations, etc.
+
+Each event / usage add will result in a small delay in an attempt to prevent users from duplicating.
+
+When the free user cannot access the "export as PDF" action, it will be disabled
+
 # Free
-- 200 AI summary credits
+- 600 AI summary credits
 - 3 Projects max
-- 60 tasks created a week.
+- 75 tasks created a week.
+- VITE_CUSTOMER_ID=customer-free-test
+
 
 # Advanced (10 dollars a month of 100 dollars a year)
-- 1000 AI summary credits
+- 2000 AI summary credits
 - 10 Projects
 - Download project as PDF feature enabled
 - 200 tasks a week.
+- VITE_CUSTOMER_ID=customer-paid
 
 
 ### 1) Server (backend)
@@ -45,7 +52,7 @@ PDF, as well as create AI summaries of projects. Here are the tier options below
 
 1. From the project root: npm install
 
-2. create .env file with stigg client id,
+2. create .env file with VITE_STIGG_CLIENT_KEY and VITE_CUSTOMER_ID
 
 3. npm run dev to run the web app locally
 
@@ -57,3 +64,4 @@ PDF, as well as create AI summaries of projects. Here are the tier options below
 - Allow users to "self-serve" themselves with projects, summaries, etc.
 - Alert users when their limits have reached certain thresholds.
 - Time-based deals. First x users get this, second n users get this...
+- Add checks to users cannot game the system by adding features quickly back to back.

@@ -5,12 +5,14 @@ import './App.css'
 import { StiggProvider } from '@stigg/react-sdk'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import Pricing from './pages/Pricing'
-import { getUsage, addEvent as apiAddEvent, reportUsage as apiReportUsage } from './api-methods'
+import { getUsage, addTaskEvent, reportAPIUsage } from './api-methods'
 
 function Home() {
-  const CUSTOMER_ID = import.meta.env.VITE_CUSTOMER_ID || 'customer-1'
+  const CUSTOMER_ID = import.meta.env.VITE_CUSTOMER_ID
   const [usage, setUsage] = useState(null)
   const [loadingUsage, setLoadingUsage] = useState(false)
+  const [reportingUsage, setReportingUsage] = useState(false)
+  const [addingTask, setAddingTask] = useState(false)
 
   // Hardset two projects with initial tasks
   const [projects, setProjects] = useState([
@@ -36,33 +38,50 @@ function Home() {
     }
   }
 
-  const projectCount = 2 // hardset
-
+  const projectCount = projects.length
   const currentTaskCount = projects.reduce((acc, p) => acc + p.tasks.length, 0)
 
+  // Usage button logic
+  const usageCurrent = usage?.aiSummaries?.current ?? 0
+  const usageLimit = usage?.aiSummaries?.limit ?? Infinity
+  const canReportUsage = usageCurrent < usageLimit && !reportingUsage
+
+  async function handleAIUsage() {
+    if (!canReportUsage) return
+    setReportingUsage(true)
+    try {
+      await reportAPIUsage(CUSTOMER_ID, 'feature-ai-summaries')
+      await new Promise(resolve => setTimeout(resolve, 700)) // delay to prevent rapid taps
+      await fetchUsage()
+    } catch (e) {
+      console.error('reportUsage failed', e)
+    } finally {
+      setReportingUsage(false)
+    }
+  }
+
+  // Task event logic
+  const canAddTask = usage?.hasTaskAccess !== false && usage?.taskCount < usage?.taskMax && !addingTask
+
   async function addTask(projectId) {
+    if (!canAddTask) return
+    setAddingTask(true)
     const title = `Task ${Date.now().toString().slice(-4)}`
     setProjects(prev =>
       prev.map(p => (p.id === projectId ? { ...p, tasks: [...p.tasks, { id: `t${Date.now()}`, title }] } : p))
     )
-
-    // call local APIs
     try {
-      await apiAddEvent(CUSTOMER_ID, { projectId, title })
-    } catch (e) {
-      console.error('addEvent failed', e)
-    }
-    try {
-      const res = await apiReportUsage(CUSTOMER_ID, 'feature-tasks-created')
-      // optionally refresh usage after reporting
+      await addTaskEvent(CUSTOMER_ID, { projectId, title })
+      await new Promise(resolve => setTimeout(resolve, 700)) // delay to prevent rapid taps
       await fetchUsage()
-      console.log('reportUsage sent value', res.value)
     } catch (e) {
-      console.error('reportUsage failed', e)
+      console.error('addTask failed', e)
+    } finally {
+      setAddingTask(false)
     }
   }
 
-  async function removeTask(projectId, taskId) {
+  async function removeTask(projectId, taskId) {  
     setProjects(prev =>
       prev.map(p => (p.id === projectId ? { ...p, tasks: p.tasks.filter(t => t.id !== taskId) } : p))
     )
@@ -92,27 +111,13 @@ function Home() {
 
   // updated: export handler (ensure project exists)
   async function exportAsPdf(projectId) {
-    const project = projects.find(p => p.id === projectId)
-    if (!project) return
-
-    // if user does not have export access, send them to pricing
-    if (!usage?.exportPDF) {
-      navigate('/pricing')
-      return
-    }
-
-    try {
-      await apiAddEvent(CUSTOMER_ID, { projectId, action: 'export_pdf', projectName: project.name })
-    } catch (e) {
-      console.error('export event failed', e)
-    }
     alert(`Exporting "${project.name}" as PDF`)
   }
 
   return (
     <>
 
-      <h1>Task App — Vite + React</h1>
+      <h1>Task App w/ Stigg</h1>
 
       <section style={{ border: '1px solid #ddd', padding: 12, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -129,6 +134,7 @@ function Home() {
             >
               Add Project
             </button>
+
           </div>
         </div>
 
@@ -138,7 +144,7 @@ function Home() {
             <div>Max projects: {usage.maxProjects}</div>
             <div>Task usage - current: {usage.taskCount} / max: {usage.taskMax} / hasAccess: {String(usage.hasTaskAccess)}</div>
             <div>AI summaries: current {usage.aiSummaries?.current} limit {usage.aiSummaries?.limit}</div>
-            <div>Project count (hardset): {projectCount}</div>
+            <div>Project count: {projectCount}</div>
             <div>Current task count (local): {currentTaskCount}</div>
             {!canAddProject && <div style={{ color: 'crimson', marginTop: 6 }}>Project limit reached — cannot add more projects.</div>}
           </div>
@@ -152,14 +158,25 @@ function Home() {
           <div key={project.id} style={{ border: '1px solid #eee', padding: 12, marginBottom: 8 }}>
             <h3>{project.name}</h3>
             <div>
-              <button onClick={() => addTask(project.id)}>Add Task</button>
-              {/* always show Export as PDF; handler will redirect to pricing if no access */}
-              <button style={{ marginLeft: 8 }} onClick={() => exportAsPdf(project.id)}>
+              <button onClick={() => addTask(project.id)} disabled={!canAddTask}>
+                {addingTask ? 'Adding...' : 'Add Task'}
+              </button>
+              <button
+                style={{ marginLeft: 8 }}
+                onClick={() => exportAsPdf(project.id)}
+                disabled={!usage?.exportPDF}
+              >
                 Export as PDF
               </button>
-              {/* new: Remove Project button */}
               <button style={{ marginLeft: 8 }} onClick={() => removeProject(project.id)}>
                 Remove Project
+              </button>
+              <button
+                style={{ marginLeft: 8 }}
+                onClick={handleAIUsage}
+                disabled={!canReportUsage}
+              >
+                {reportingUsage ? 'Reporting...' : 'Report Usage (+10)'}
               </button>
             </div>
             <ul>
@@ -175,19 +192,19 @@ function Home() {
         ))}
       </div>
 
-      <p className="read-the-docs">Click Add Task to create tasks (reports event & usage)</p>
+      <p className="read-the-docs">Click Add Task to create tasks (reports event). Use "Report Usage" to increment usage by 10.</p>
     </>
   )
 }
 
 function App() {
   return (
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/pricing" element={<Pricing />} />
-        </Routes>
-      </Router>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/pricing" element={<Pricing />} />
+      </Routes>
+    </Router>
   )
 }
 

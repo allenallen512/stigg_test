@@ -5,7 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
  */
 export async function getUsage(customerId) {
   if (!customerId) throw new Error('customerId is required');
-  const res = await fetch(`${API_BASE}/api/entitlements/${encodeURIComponent(customerId)}`);
+  const res = await fetch(`${API_BASE}/api/entitlements/${customerId}`);
   if (!res.ok) throw new Error(`getUsage failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
@@ -13,7 +13,7 @@ export async function getUsage(customerId) {
 /**
  * Report an event to the server.
  */
-export async function addEvent(customerId, dimensions = {}) {
+export async function addTaskEvent(customerId, dimensions = {}) {
   if (!customerId) throw new Error('customerId is required');
   const res = await fetch(`${API_BASE}/api/events`, {
     method: 'POST',
@@ -27,9 +27,9 @@ export async function addEvent(customerId, dimensions = {}) {
 /**
  * Report usage with a random value.
  */
-export async function reportUsage(customerId, featureId = 'feature-ai-summaries') {
+export async function reportAPIUsage(customerId, featureId = 'feature-ai-summaries') {
   if (!customerId) throw new Error('customerId is required');
-  const value = Math.floor(Math.random() * 10) + 1; // random 1-10
+  const value = 10
   const res = await fetch(`${API_BASE}/api/usage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
