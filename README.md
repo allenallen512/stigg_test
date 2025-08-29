@@ -35,7 +35,7 @@ When the free user cannot access the "export as PDF" action, it will be disabled
 - VITE_CUSTOMER_ID=customer-paid
 
 
-### 1) Server (backend)
+### 1) Server (backend) (requires its own .env file within the server file)
 
 1. Open a terminal and go to the server folder:
    cd server
@@ -48,7 +48,7 @@ When the free user cannot access the "export as PDF" action, it will be disabled
 
 5.  http://localhost:4000/api/entitlements/<customer id> to check if the server is running
 
-### 2) Web app (client)
+### 2) Web app (client) (requires its own .env file in the stigg-test-allen directory of the project)
 
 1. From the project root: npm install
 
