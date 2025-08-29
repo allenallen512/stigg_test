@@ -29,6 +29,7 @@ app.get('/api/entitlements/:customerId', async (req, res) => {
             maxProjects: numProj?.value ?? 0,
             taskCount: numberTasks?.currentUsage ?? 9999,
             taskMax: numberTasks?.usageLimit ?? 20,
+            taskReset: numberTasks?.resetPeriod,
             hasTaskAccess: numberTasks?.hasAccess ?? false,
             aiSummaries: {
                 current: metAI?.currentUsage ?? 0,
