@@ -2,7 +2,7 @@
 
 ## Running the project
 
-Go into "stigg-test-allen" folder
+Go into "stigg-test-allen" folder. 
 
 Prerequisites:
 - Node.js (I use 24.1.0 but any current one should work)
@@ -12,7 +12,7 @@ Prerequisites:
 
 ## What I made 
 I made a project manager which allows users to create projects, create tasks for a project, download a project and its tasks as a
-PDF, as well as create AI summaries of projects. Here are the tier options below. 
+PDF, as well as create AI summaries of projects. Here are the tier options below. Clicking "go to pricing" will take you to the pricing page.
 
 For now - each "AI use" will just add increment the usage by 10 since I am not tracking tokens, GPU minutes, any computations, etc.
 
@@ -40,7 +40,7 @@ When the free user cannot access the "export as PDF" action, it will be disabled
 1. Open a terminal and go to the server folder:
    cd server
 
-2. npm install
+2. npm install 
 
 3. Create .env file with stigg server key
 
