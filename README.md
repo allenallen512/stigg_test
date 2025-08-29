@@ -20,14 +20,14 @@ Each event / usage add will result in a small delay in an attempt to prevent use
 
 When the free user cannot access the "export as PDF" action, it will be disabled
 
-# Free
+## Free
 - 600 AI summary credits
 - 3 Projects max
 - 75 tasks created a week.
 - VITE_CUSTOMER_ID=customer-free-test
 
 
-# Advanced (10 dollars a month of 100 dollars a year)
+## Advanced (10 dollars a month of 100 dollars a year)
 - 2000 AI summary credits
 - 10 Projects
 - Download project as PDF feature enabled
