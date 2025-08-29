@@ -54,9 +54,11 @@ When the free user cannot access the "export as PDF" action, it will be disabled
 
 2. create .env file with VITE_STIGG_CLIENT_KEY and VITE_CUSTOMER_ID
 
-3. npm run dev to run the web app locally
+3. The webapp will run under whichever customer is defined in the VITE_CUSTOMER_ID portion of the .env file.
 
-4. Open the app with the URL printed
+4. npm run dev to run the web app locally
+
+5. Open the app with the URL printed
 
 
 ### If I had more time:
