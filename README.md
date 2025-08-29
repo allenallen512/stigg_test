@@ -14,7 +14,8 @@ Prerequisites:
 I made a project manager which allows users to create projects, create tasks for a project, download a project and its tasks as a
 PDF, as well as create AI summaries of projects. Here are the tier options below. Clicking "go to pricing" will take you to the pricing page.
 
-For now - each "AI use" will just add increment the usage by 10 since I am not tracking tokens, GPU minutes, any computations, etc.
+For now - each "AI use" will just add increment the usage by 10 since I am not tracking tokens, GPU minutes, any computations, etc. When adding tasks (incrementing the event usage), 
+the app should reload the usage. If the usage does not reload, you can click "refresh usage" to manually reload. 
 
 Each event / usage add will result in a small delay in an attempt to prevent users from duplicating.
 
