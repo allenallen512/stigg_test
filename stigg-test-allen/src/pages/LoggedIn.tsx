@@ -30,10 +30,12 @@ async function fetchProductsFromEdge(token: string) {
       'Content-Type': 'application/json'
     }
   });
+  const responseData = await res.json();
+  console.log('Edge function response:', responseData);
   if (!res.ok) {
     throw new Error('Failed to fetch products');
   }
-  const { products } = await res.json();
+  const { products } = responseData;
   return products;
 }
 
