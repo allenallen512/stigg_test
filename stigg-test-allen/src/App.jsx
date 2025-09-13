@@ -6,194 +6,104 @@ import { StiggProvider } from '@stigg/react-sdk'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import Pricing from './pages/Pricing'
 import { getUsage, addTaskEvent, reportAPIUsage } from './api-methods'
+import AuthPage from './pages/AuthPage'
+import LoggedIn from './pages/LoggedIn'
+import { supabase } from '../supabase';
 
 function Home() {
   const CUSTOMER_ID = import.meta.env.VITE_CUSTOMER_ID
-  const [usage, setUsage] = useState(null)
-  const [loadingUsage, setLoadingUsage] = useState(false)
-  const [reportingUsage, setReportingUsage] = useState(false)
-  const [addingTask, setAddingTask] = useState(false)
+  const navigate = useNavigate()
 
-  // Hardset two projects with initial tasks
-  const [projects, setProjects] = useState([
-    { id: 'p1', name: 'Project Alpha', tasks: [{ id: 't1', title: 'Design UI' }, { id: 't2', title: 'Setup repo' }] },
-    { id: 'p2', name: 'Project Beta', tasks: [{ id: 't3', title: 'Write tests' }] }
-  ])
+  const [showLoginForm, setShowLoginForm] = useState(false)
+  const [showSignUpForm, setShowSignUpForm] = useState(false)
 
-  const navigate = useNavigate();
+  // login form fields (email + password)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
 
-  useEffect(() => {
-    fetchUsage()
-  }, [])
+  // signup form fields (email + password)
+  const [signupEmail, setSignupEmail] = useState('')
+  const [signupPassword, setSignupPassword] = useState('')
 
-  async function fetchUsage() {
-    try {
-      setLoadingUsage(true)
-      const data = await getUsage(CUSTOMER_ID)
-      setUsage(data)
-    } catch (e) {
-      console.error('fetchUsage error', e)
-    } finally {
-      setLoadingUsage(false)
-    }
-  }
-
-  const projectCount = projects.length
-  const currentTaskCount = projects.reduce((acc, p) => acc + p.tasks.length, 0)
-
-  // Usage button logic
-  const usageCurrent = usage?.aiSummaries?.current ?? 0
-  const usageLimit = usage?.aiSummaries?.limit ?? Infinity
-  const canReportUsage = usageCurrent < usageLimit && !reportingUsage
-
-  async function handleAIUsage() {
-    if (!canReportUsage) return
-    setReportingUsage(true)
-    try {
-      await reportAPIUsage(CUSTOMER_ID, 'feature-ai-summaries')
-      await new Promise(resolve => setTimeout(resolve, 700)) // delay to prevent rapid taps
-      await fetchUsage()
-    } catch (e) {
-      console.error('reportUsage failed', e)
-    } finally {
-      setReportingUsage(false)
-    }
-  }
-
-  // Task event logic
-  const canAddTask = usage?.hasTaskAccess !== false && usage?.taskCount < usage?.taskMax && !addingTask
-
-  async function addTask(projectId) {
-    if (!canAddTask) return
-    setAddingTask(true)
-    const title = `Task ${Date.now().toString().slice(-4)}`
-    setProjects(prev =>
-      prev.map(p => (p.id === projectId ? { ...p, tasks: [...p.tasks, { id: `t${Date.now()}`, title }] } : p))
-    )
-    try {
-      await addTaskEvent(CUSTOMER_ID, { projectId, title })
-      await new Promise(resolve => setTimeout(resolve, 700)) // delay to prevent rapid taps
-      await fetchUsage()
-    } catch (e) {
-      console.error('addTask failed', e)
-    } finally {
-      setAddingTask(false)
-    }
-  }
-
-  async function removeTask(projectId, taskId) {  
-    setProjects(prev =>
-      prev.map(p => (p.id === projectId ? { ...p, tasks: p.tasks.filter(t => t.id !== taskId) } : p))
-    )
-    // optional: you could report a negative usage or an event here
-  }
-
-  // determine whether we can add more projects (if usage known, enforce maxProjects)
-  const canAddProject = !(usage && typeof usage.maxProjects === 'number' && projects.length >= usage.maxProjects)
-
-  async function addProject() {
-    if (!canAddProject) {
-      // optional: show a user-friendly message instead of throwing
-      console.warn('Cannot add project: reached maxProjects limit')
+  async function handleLoginEmailPassword(e) {
+    e.preventDefault()
+    if (!loginEmail || !loginPassword) return alert('Please provide email and password')
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword
+    })
+    if (error) {
+      console.error('Login error', error)
+      alert('Login failed: ' + error.message)
       return
     }
-    const newId = `p${Date.now()}`
-    const newProject = { id: newId, name: `Project ${projects.length + 1}`, tasks: [] }
-    setProjects(prev => [...prev, newProject])
-    // optionally fetch usage after adding (if your server updates project count)
-    // await fetchUsage()
+    // signed in successfully
+    navigate('/loggedin')
   }
 
-  // new: remove project helper
-  function removeProject(projectId) {
-    setProjects(prev => prev.filter(p => p.id !== projectId))
-  }
-
-  // updated: export handler (ensure project exists)
-  async function exportAsPdf(projectId) {
-    alert(`Exporting "${project.name}" as PDF`)
+  async function handleSignUp(e) {
+    e.preventDefault()
+    if (!signupEmail || !signupPassword) return alert('Please provide email and password')
+    const { data, error } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword
+    })
+    if (error) {
+      console.error('Signup error', error)
+      alert('Sign up failed: ' + error.message)
+      return
+    }
+    alert('Sign up successful. Redirecting...')
+    navigate('/loggedin')
   }
 
   return (
-    <>
+    <div style={{ textAlign: 'center', marginTop: 80 }}>
+      <h2>Demo Auth</h2>
 
-      <h1>Task App w/ Stigg</h1>
-
-      <section style={{ border: '1px solid #ddd', padding: 12, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>User usage & limits</strong>
-          <div>
-            <button onClick={fetchUsage} disabled={loadingUsage}>
-              {loadingUsage ? 'Refreshing...' : 'Refresh usage'}
-            </button>
-            <button style={{ marginLeft: 8 }} onClick={() => navigate('/pricing')}>Go to Pricing</button>
-            <button
-              style={{ marginLeft: 8 }}
-              onClick={addProject}
-              disabled={!canAddProject}
-            >
-              Add Project
-            </button>
-
-          </div>
-        </div>
-
-        {usage ? (
-          <div style={{ marginTop: 8 }}>
-            <div>Export PDF access: {usage.exportPDF ? 'Yes' : 'No'}</div>
-            <div>Max projects: {usage.maxProjects}</div>
-            <div>Task usage - current: {usage.taskCount} / max: {usage.taskMax} / hasAccess: {String(usage.hasTaskAccess)}</div>
-            <div>AI summaries: current {usage.aiSummaries?.current} limit {usage.aiSummaries?.limit}</div>
-            <div>Project count: {projectCount}</div>
-            <div>Current task count (local): {currentTaskCount}</div>
-            {!canAddProject && <div style={{ color: 'crimson', marginTop: 6 }}>Project limit reached — cannot add more projects.</div>}
-          </div>
-        ) : (
-          <div style={{ marginTop: 8 }}>No usage data loaded</div>
-        )}
-      </section>
-
-      <div>
-        {projects.map(project => (
-          <div key={project.id} style={{ border: '1px solid #eee', padding: 12, marginBottom: 8 }}>
-            <h3>{project.name}</h3>
-            <div>
-              <button onClick={() => addTask(project.id)} disabled={!canAddTask}>
-                {addingTask ? 'Adding...' : 'Add Task'}
-              </button>
-              <button
-                style={{ marginLeft: 8 }}
-                onClick={() => exportAsPdf(project.id)}
-                disabled={!usage?.exportPDF}
-              >
-                Export as PDF
-              </button>
-              <button style={{ marginLeft: 8 }} onClick={() => removeProject(project.id)}>
-                Remove Project
-              </button>
-              <button
-                style={{ marginLeft: 8 }}
-                onClick={handleAIUsage}
-                disabled={!canReportUsage}
-              >
-                {reportingUsage ? 'Reporting...' : 'Report Usage (+10)'}
-              </button>
-            </div>
-            <ul>
-              {project.tasks.map(task => (
-                <li key={task.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span>{task.title}</span>
-                  <button onClick={() => removeTask(project.id, task.id)}>Remove</button>
-                </li>
-              ))}
-              {project.tasks.length === 0 && <li>No tasks</li>}
-            </ul>
-          </div>
-        ))}
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
+        <button onClick={() => { setShowLoginForm(true); setShowSignUpForm(false); }}>
+          Log In
+        </button>
+        <button onClick={() => { setShowSignUpForm(true); setShowLoginForm(false); }}>
+          Sign Up
+        </button>
       </div>
 
-      <p className="read-the-docs">Click Add Task to create tasks (reports event). Use "Report Usage" to increment usage by 10.</p>
-    </>
+      {showLoginForm && (
+        <form onSubmit={handleLoginEmailPassword} style={{ display: 'inline-block', textAlign: 'left' }}>
+          <div style={{ marginBottom: 8 }}>
+            <label>Email</label><br />
+            <input value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>Password</label><br />
+            <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => setShowLoginForm(false)}>Cancel</button>
+            <button type="submit">Log In</button>
+          </div>
+        </form>
+      )}
+
+      {showSignUpForm && (
+        <form onSubmit={handleSignUp} style={{ display: 'inline-block', textAlign: 'left' }}>
+          <div style={{ marginBottom: 8 }}>
+            <label>Email</label><br />
+            <input value={signupEmail} onChange={e => setSignupEmail(e.target.value)} />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>Password</label><br />
+            <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => setShowSignUpForm(false)}>Cancel</button>
+            <button type="submit">Create Account</button>
+          </div>
+        </form>
+      )}
+    </div>
   )
 }
 
@@ -203,6 +113,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/loggedin" element={<LoggedIn />} />
       </Routes>
     </Router>
   )
